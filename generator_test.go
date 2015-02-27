@@ -18,3 +18,10 @@ func TestGeneratorFromEmpty(t *testing.T) {
 	_, err := q.ToSql()
 	assert.Error(t, err)
 }
+
+func TestGeneratorSelect(t *testing.T) {
+	q := &Query{From: "foo", Select: []string{"id", "username"}}
+	sql, err := q.ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, "SELECT id, username FROM foo;", sql)
+}
