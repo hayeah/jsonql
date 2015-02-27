@@ -4,53 +4,31 @@ import (
 	"encoding/json"
 	"log"
 	"os"
-	"os/exec"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 
-	_ "github.com/mattn/go-sqlite3"
-)
+	"github.com/hayeah/jsonql/fixture"
 
-var (
-	TestDbSQLFile = "sampledb.sql"
-	TestDbName    = "testdb.sqlite3"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var db *DB
 
-func setupDb() error {
-	destroyDb()
-	cmd := exec.Command("sqlite3", TestDbName)
-
-	// pipe sql into db
-	f, err := os.Open(TestDbSQLFile)
-	if err != nil {
-		return err
-	}
-	cmd.Stdin = f
-	err = cmd.Run()
-	return err
-}
-
-func destroyDb() {
-	os.Remove(TestDbName)
-}
-
 func TestMain(m *testing.M) {
-	err := setupDb()
+	err := fixture.CreateDB()
+	defer fixture.DestroyDB()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	db, err = OpenDB("sqlite3", TestDbName)
+	db, err = OpenDB("sqlite3", fixture.TestDBDataSource)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer destroyDb()
 	os.Exit(m.Run())
 }
 

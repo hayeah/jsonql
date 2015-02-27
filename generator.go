@@ -10,7 +10,7 @@ var (
 )
 
 type Query struct {
-	From string
+	From string `json:"from"`
 }
 
 // can't bind column and table names as parameters... need to escape. Can't find an escape function offhand.

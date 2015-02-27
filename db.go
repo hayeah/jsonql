@@ -19,6 +19,10 @@ func OpenDB(driverName string, dataSourceName string) (*DB, error) {
 	return &DB{db: sqldb}, nil
 }
 
+func (d *DB) Close() {
+	d.db.Close()
+}
+
 func (d *DB) Query(q *Query) (records *Records, err error) {
 	sql, err := q.ToSql()
 	if err != nil {
