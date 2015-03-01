@@ -122,6 +122,27 @@ func TestDbRelation(t *testing.T) {
 
 }
 
+func TestDbGetAll(t *testing.T) {
+	q := &Query{From: "users"}
+	records, err := db.Query(q)
+	assert.NoError(t, err)
+
+	maps, err := records.All()
+	assert.NoError(t, err)
+	assert.Equal(t, 4, len(maps))
+
+	// null result should return empty slice instead of nil
+	q = &Query{From: "users", Where: "1 = 0"}
+	records, err = db.Query(q)
+	assert.NoError(t, err)
+
+	maps, err = records.All()
+	assert.NoError(t, err)
+	assert.NotNil(t, maps)
+	assert.Equal(t, 0, len(maps))
+
+}
+
 func TestDbRelationParentKey(t *testing.T) {
 	// The implicit parent key of a relation is "id".
 	relations := make(map[string]RelateQuery)

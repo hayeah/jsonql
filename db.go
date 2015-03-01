@@ -125,6 +125,10 @@ func (r *Records) All() (values []map[string]interface{}, err error) {
 	for r.Next() {
 		values = append(values, r.CopyMap())
 	}
+
+	if values == nil {
+		values = make([]map[string]interface{}, 0)
+	}
 	return values, r.Err()
 }
 
