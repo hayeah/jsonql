@@ -7,6 +7,7 @@ The design goals are:
 + Obvious query generation. What you see is what you get.
 + Cover 90% of common sql query usage.
 + Anti-ORM: take advantage sql features like views.
+  + Or denormalized data
 + Should be easy to programmatically generate jsonQL queries.
 + Straight-forward mapping to nested JSON structures.
 
@@ -54,12 +55,22 @@ Or it can use reversed polish notation to build complex conditions:
 {limit: "first"}
 ```
 
-# Join
+# Named Parameter
+
+(NOT IMPLEMENTED YET)
+
+jsonQL doesn't escape anything. Consider it as potentially dangerous as writing raw SQL queries. To protect against SQL injection attack, you can use named parameters in `where`, like so:
+
+```
+["id > :lower_id and id < :upper_id"]
+```
+
+# Relations
 
 Only support simple foreign key join on a single key. Use views to handle more complex join conditions.
 
 ```
-{ table: "users",
+{ from: "users",
   join: {
      followers: {limit: 10},
      followers_count: {table: "followers", select: "count(*)", limit: "first"},
@@ -67,3 +78,21 @@ Only support simple foreign key join on a single key. Use views to handle more c
   }
 }
 ```
+
+Nested relations. Geting the latest 3 tweets of all following users:
+
+```
+{
+  from: "users",
+  relate: {
+    "following": {
+      relate: {"tweets": {limit: 3, order: "id desc"}}
+    }
+  },
+  where: {"id = :id"}
+}
+```
+
+Join is not used. A select query will be issued per relation per record.
+
+

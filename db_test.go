@@ -86,3 +86,58 @@ func TestDbRecordsCopyMap(t *testing.T) {
 	assert.Equal(t, john["id"], 1)
 	assert.Equal(t, john["username"], "john")
 }
+
+func TestDbRelation(t *testing.T) {
+	relations := make(map[string]RelateQuery)
+	relations["followers"] = RelateQuery{Using: "user_id", Order: "id"}
+	relations["followings"] = RelateQuery{Using: "user_id", Order: "id"}
+	q := &Query{From: "users", Relate: relations, Where: "id = 1"}
+
+	records, err := db.Query(q)
+	assert.NoError(t, err)
+	assert.True(t, records.Next())
+
+	user := records.GetMap()
+	assert.Equal(t, 1, user["id"])
+
+	followers := user["followers"].([]map[string]interface{})
+	followings := user["followings"].([]map[string]interface{})
+	assert.Equal(t, 2, len(followers))
+	assert.Equal(t, 1, len(followings))
+
+	var u map[string]interface{}
+	u = followers[0]
+	assert.Equal(t, 2, u["id"])
+	assert.Equal(t, "jerry", u["username"])
+
+	u = followers[1]
+	assert.Equal(t, 3, u["id"])
+	assert.Equal(t, "jenny", u["username"])
+
+	u = followings[0]
+	assert.Equal(t, 4, u["id"])
+	assert.Equal(t, "jane", u["username"])
+
+	// fmt.Println("relate:", records.GetJSON())
+
+}
+
+func TestDbRelationParentKey(t *testing.T) {
+	// The implicit parent key of a relation is "id".
+	relations := make(map[string]RelateQuery)
+	relations["followers"] = RelateQuery{Using: "user_id", Order: "id"}
+	q := &Query{Select: []string{"username"}, From: "users", Relate: relations}
+
+	records, err := db.Query(q)
+	assert.NoError(t, err)
+	assert.False(t, records.Next())
+	assert.Equal(t, records.Err(), ErrRelationNoParentId)
+
+	// can specify an alternate parent join key
+	relations = make(map[string]RelateQuery)
+	relations["followers"] = RelateQuery{Using: "user_id", Order: "id", ParentKey: "foobar"}
+	q = &Query{Select: []string{"id as foobar"}, From: "users", Relate: relations}
+	records, err = db.Query(q)
+	assert.NoError(t, err)
+	assert.True(t, records.Next())
+}

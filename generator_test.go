@@ -46,3 +46,31 @@ func TestGeneratorOrder(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "SELECT * FROM foo ORDER BY id DESC;", sql)
 }
+
+func TestGeneratorRelate(t *testing.T) {
+	var r *RelateQuery
+	var sql string
+	var err error
+
+	// error if Using is not specified
+	r = &RelateQuery{}
+	_, err = r.ToSql("followers", 42)
+	assert.Error(t, err)
+
+	r = &RelateQuery{Using: "user_id"}
+	sql, err = r.ToSql("followers", 42)
+	assert.NoError(t, err)
+	assert.Equal(t, "SELECT * FROM followers WHERE user_id = 42;", sql)
+
+	// merge where
+	r = &RelateQuery{Using: "user_id", Where: "id > 10"}
+	sql, err = r.ToSql("followers", 42)
+	assert.NoError(t, err)
+	assert.Equal(t, "SELECT * FROM followers WHERE (id > 10) AND user_id = 42;", sql)
+
+	// override relation name
+	r = &RelateQuery{From: "followers", Using: "user_id"}
+	sql, err = r.ToSql("foobar", 42)
+	assert.NoError(t, err)
+	assert.Equal(t, "SELECT * FROM followers WHERE user_id = 42;", sql)
+}

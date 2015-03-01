@@ -4,8 +4,15 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"io"
 )
+
+var (
+	ErrRelationNoParentId = errors.New("Relation's parent has no id")
+)
+
+// type Map map[string]interface{}
 
 type DB struct {
 	db *sql.DB
@@ -34,12 +41,14 @@ func (d *DB) Query(q *Query) (records *Records, err error) {
 		return
 	}
 
-	records = &Records{rows: rows}
+	records = &Records{rows: rows, query: q, db: d}
 	return
 }
 
 type Records struct {
-	rows *sql.Rows
+	query *Query
+	db    *DB
+	rows  *sql.Rows
 	// Map to scan row data into
 	dest    map[string]interface{}
 	scanErr error
@@ -61,6 +70,43 @@ func (r *Records) scanData() error {
 	}
 
 	err := MapScan(r.rows, r.dest)
+	if err != nil {
+		return err
+	}
+
+	// If Query specifies relations, do join here for each relation
+	if r.query.Relate != nil {
+		for relationName, rq := range r.query.Relate {
+			// TODO: if user does not include "id", implicitly include it
+			parentKey := rq.ParentKey
+			if parentKey == "" {
+				parentKey = "id"
+			}
+			parentId, ok := r.dest[parentKey].(int64)
+			if !ok {
+				return ErrRelationNoParentId
+			}
+
+			q, err := rq.ToQuery(relationName, parentId)
+			if err != nil {
+				return err
+			}
+
+			relatedRecords, err := r.db.Query(q)
+			if err != nil {
+				return err
+			}
+
+			relation, err := relatedRecords.All()
+			if err != nil {
+				return err
+			}
+
+			// assign relation to data
+			r.dest[relationName] = relation
+		}
+	}
+
 	return err
 }
 
@@ -73,6 +119,13 @@ func (r *Records) GetJSON() string {
 	}
 
 	return buf.String()
+}
+
+func (r *Records) All() (values []map[string]interface{}, err error) {
+	for r.Next() {
+		values = append(values, r.CopyMap())
+	}
+	return values, r.Err()
 }
 
 // valid until Next()
