@@ -2,12 +2,20 @@ package handler
 
 import (
 	"encoding/json"
-	"log"
+	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/hayeah/jsonql"
 )
+
+var (
+	ErrJSONParse = errors.New("Error parsing JSON")
+)
+
+// type errorResponse struct {
+// 	err error
+// }
 
 type HTTPHandler struct {
 	db *jsonql.DB
@@ -27,12 +35,14 @@ func (h *HTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	query := &jsonql.Query{}
 	err := decoder.Decode(query)
 	if err != nil {
-		log.Fatal(err)
+		replyError(res, err)
+		return
 	}
 
 	records, err := h.db.Query(query)
 	if err != nil {
-		log.Fatal(err)
+		replyError(res, err)
+		return
 	}
 
 	// FIXME: what do do with io error? Probably just kill the client.
@@ -58,4 +68,14 @@ func (h *HTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func replyError(res http.ResponseWriter, err error) {
+	res.WriteHeader(400)
+	encoder := json.NewEncoder(res)
+	encoder.Encode(&struct {
+		Error string
+	}{
+		Error: err.Error(),
+	})
 }
