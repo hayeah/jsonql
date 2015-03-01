@@ -47,9 +47,11 @@ func (h *HTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	// FIXME: what do do with io error? Probably just kill the client.
 	first := true
-	res.Write([]byte("["))
+	res.Write([]byte("[\n"))
 	for records.Next() {
-		if !first {
+		if first {
+			res.Write([]byte(" "))
+		} else {
 			res.Write([]byte(","))
 		}
 		first = false

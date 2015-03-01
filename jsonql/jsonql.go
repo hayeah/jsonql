@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/hayeah/jsonql"
 	"github.com/hayeah/jsonql/handler"
+
+	kjson "github.com/klauspost/json"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -118,7 +121,18 @@ func query(baseURL string, r io.Reader) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	io.Copy(os.Stdout, res.Body)
+
+	sbuf := bytes.NewBufferString("")
+	io.Copy(sbuf, res.Body)
+	// kjson.IndentStream swallows the last char, because at the end res.Body
+	// responds with the last char and EOF, and IndentStream immediately
+	// returns without processing the last char.
+	err = kjson.IndentStream(os.Stdout, sbuf, "", "  ")
+	if err != nil {
+		log.Println(err)
+	}
+
+	// io.Copy(os.Stdout, res.Body)
 }
 
 func help() {
