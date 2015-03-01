@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -41,13 +42,24 @@ func main() {
 		dataSource := args[0]
 		server(port, dataSource)
 
-	case "get":
-		if len(args) != 2 {
+	case "q", "query":
+		if len(args) < 1 {
 			help()
 		}
 		baseURL := args[0]
-		jsonQuery := args[1]
-		get(baseURL, jsonQuery)
+
+		var err error
+		var input io.Reader
+		if len(args) == 2 {
+			input, err = os.Open(args[2])
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			input = os.Stdin
+		}
+
+		query(baseURL, input)
 		// flags := flag.NewFlagSet("server", flag.ExitOnError)
 		// req.
 	default:
@@ -70,11 +82,18 @@ func server(port int, dataSource string) {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", port), nil))
 }
 
-func get(baseURL string, jsonQuery string) {
+func query(baseURL string, r io.Reader) {
 	matched, err := regexp.MatchString("^https?://", baseURL)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	input, err := ioutil.ReadAll(r)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	jsonQuery := string(input)
 
 	if !matched {
 		baseURL = "http://" + baseURL
@@ -108,7 +127,8 @@ Start a HTTP jsonql service:
   jsonql server [-p 4000] <sqlite.db>
 
 Make a jsonql request:
-  jsonql get <host> <jsonql>
+  jsonql [q|query] <host> <jsonql.json>
+  cat jsonql.json | jsonql query
   `
 	fmt.Println(intro)
 	os.Exit(1)
