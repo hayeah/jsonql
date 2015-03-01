@@ -39,3 +39,10 @@ func TestGeneratorLimit(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "SELECT * FROM foo LIMIT 2;", sql)
 }
+
+func TestGeneratorOrder(t *testing.T) {
+	q := &Query{From: "foo", Order: "id DESC"}
+	sql, err := q.ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, "SELECT * FROM foo ORDER BY id DESC;", sql)
+}

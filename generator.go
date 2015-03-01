@@ -16,6 +16,7 @@ type Query struct {
 	Select []string `json:"select"`
 	Where  string   `json:"where"`
 	Limit  int      `json:"limit"`
+	Order  string   `json:"order"`
 }
 
 // can't bind column and table names as parameters... need to escape. Can't find an escape function offhand.
@@ -43,6 +44,11 @@ func (q *Query) ToSql() (string, error) {
 	if q.Where != "" {
 		sqlBuf.WriteString(" WHERE ")
 		sqlBuf.WriteString(q.Where)
+	}
+
+	if q.Order != "" {
+		sqlBuf.WriteString(" ORDER BY ")
+		sqlBuf.WriteString(q.Order)
 	}
 
 	if q.Limit != 0 {
